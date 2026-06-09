@@ -894,6 +894,28 @@ body::after {
 .footer-legal a { font-size: 12px; color: rgba(255,255,255,0.5); font-family: var(--mono); transition: color .2s; }
 .footer-legal a:hover { color: rgba(255,255,255,0.9); }
 
+/* ============================================================
+   v12 — overlap fixes, mosaic icons, AI=Xara
+   ============================================================ */
+.ray-wrap { min-height: 680px; }
+.ray-head { top: 44px; }
+
+/* ecosystem: hug edges, never overlap center */
+.eco-center { max-width: 440px; }
+.eco-logo.f1 { top: 6%;  left: 5%;  right: auto; bottom: auto; }
+.eco-logo.f2 { top: 4%;  right: 5%; left: auto;  bottom: auto; }
+.eco-logo.f3 { top: 30%; left: 0;   right: auto; bottom: auto; }
+.eco-logo.f4 { top: 28%; right: 0;  left: auto;  bottom: auto; }
+.eco-logo.f5 { top: 54%; left: 5%;  right: auto; bottom: auto; }
+.eco-logo.f6 { top: 52%; right: 5%; left: auto;  bottom: auto; }
+.eco-logo.f7 { top: 78%; left: 2%;  right: auto; bottom: auto; }
+.eco-logo.f8 { top: 76%; right: 2%; left: auto;  bottom: auto; }
+
+/* careers mosaic: icon top, label bottom */
+.mtile { flex-direction: column; align-items: flex-start; justify-content: space-between; }
+.mtile-ico { width: 30px; height: 30px; position: relative; z-index: 1; opacity: 0.95; }
+.mtile-ico svg { width: 100%; height: 100%; }
+
 </style>
 </head>
 <body>
@@ -943,12 +965,12 @@ body::after {
           </div>
         </div>
         <div class="mosaic reveal" data-d="2">
-          <div class="mtile t1"><span>Engineering</span></div>
-          <div class="mtile t2"><span>Design</span></div>
-          <div class="mtile t3"><span>AI / ML</span></div>
-          <div class="mtile t4"><span>Cloud</span></div>
-          <div class="mtile t5"><span>Product</span></div>
-          <div class="mtile t6"><span>Strategy</span></div>
+          <div class="mtile t1"><div class="mtile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M8 9l-3 3 3 3M16 9l3 3-3 3M13 6l-2 12" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Engineering</span></div>
+          <div class="mtile t2"><div class="mtile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M12 19l7-7-4-4-7 7-1 5z" stroke-linejoin="round"/><path d="M16 8l-1-1" stroke-linecap="round"/></svg></div><span>Design</span></div>
+          <div class="mtile t3"><div class="mtile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke-linecap="round"/><circle cx="12" cy="12" r="4"/></svg></div><span>AI / ML</span></div>
+          <div class="mtile t4"><div class="mtile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M6 18a4 4 0 010-8 5 5 0 019.6-1A4 4 0 0118 18z" stroke-linejoin="round"/></svg></div><span>Cloud</span></div>
+          <div class="mtile t5"><div class="mtile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" stroke-linejoin="round"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5" stroke-linejoin="round"/></svg></div><span>Product</span></div>
+          <div class="mtile t6"><div class="mtile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke-linecap="round"/></svg></div><span>Strategy</span></div>
         </div>
       </div>
     </div>
@@ -1068,7 +1090,6 @@ body::after {
         <a href="/responsible-disclosure.html">Responsible Disclosure</a>
         <a href="/modern-slavery.html">Modern Slavery Statement</a>
         <a href="/do-not-sell.html">Do not sell my personal information</a>
-        <a href="/sitemap.xml">Sitemap</a>
       </div>
       <div class="footer-bottom">
         <span>© 2026 writeXpert. All rights reserved.</span>
@@ -1081,8 +1102,8 @@ body::after {
   <button class="ai-fab" id="ai-fab"><span class="ai-dot"></span>Ask AI</button>
   <div class="ai-panel" id="ai-panel">
     <div class="ai-top">
-      <div class="ai-avatar">W</div>
-      <div><h4>writeXpert AI</h4><p>Powered by Llama</p></div>
+      <div class="ai-avatar">X</div>
+      <div><h4>Xara</h4><p>writeXpert AI &middot; Llama</p></div>
       <button class="ai-close" id="ai-close" aria-label="Close">&times;</button>
     </div>
     <div class="ai-msgs" id="ai-msgs"></div>
@@ -1273,14 +1294,17 @@ body::after {
     });
   }
 
-  /* ---- interactive ray-burst ---- */
+  /* ---- interactive ray-burst (cursor-repel) ---- */
   (function () {
     var canvas = document.getElementById('ray-canvas');
     if (!canvas) return;
     var ctx = canvas.getContext('2d');
     var section = document.querySelector('.ray-section');
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var rays = [];
+    var W = 0, H = 0, ox = 0, oy = 0;
+    var rays = [], SEG = 6;
+    var mouse = { x: -9999, y: -9999, active: false };
+    var running = false, rafId = null;
     var themes = {
       'pre-dawn': { bg: 'linear-gradient(180deg,#1e1b4b,#312e81)', dark: true, colors: ['#818cf8', '#a5b4fc', '#6366f1'], dot: '#c7d2fe' },
       'sunrise':  { bg: 'linear-gradient(180deg,#fef3c7,#fbcfe8)', dark: false, colors: ['#fb923c', '#f472b6', '#fbbf24'], dot: '#f59e0b' },
@@ -1290,45 +1314,70 @@ body::after {
       'night':    { bg: 'linear-gradient(180deg,#0f172a,#1e1b4b)', dark: true, colors: ['#6366f1', '#475569', '#818cf8'], dot: '#a5b4fc' }
     };
     var current = 'dusk';
-    function genRays() {
+    function build() {
       rays = [];
-      var N = 150, startA = Math.PI * 200 / 180, endA = Math.PI * 340 / 180;
+      var N = 130, startA = Math.PI * 200 / 180, endA = Math.PI * 340 / 180, maxLen = H * 0.62;
       for (var i = 0; i < N; i++) {
-        var t = i / (N - 1);
-        rays.push({ ang: startA + t * (endA - startA), len: 0.5 + Math.random() * 0.5, dots: 1 + Math.floor(Math.random() * 3), jitter: Math.random() });
+        var t = i / (N - 1), ang = startA + t * (endA - startA), len = maxLen * (0.45 + Math.random() * 0.55), pts = [];
+        for (var s = 0; s <= SEG; s++) {
+          var f = s / SEG, hx = ox + Math.cos(ang) * len * f, hy = oy + Math.sin(ang) * len * f;
+          pts.push({ hx: hx, hy: hy, x: hx, y: hy });
+        }
+        rays.push({ pts: pts, jitter: Math.random() });
       }
     }
-    function draw() {
-      var th = themes[current], W = canvas.width, H = canvas.height;
+    function resize() {
+      var r = canvas.getBoundingClientRect();
+      W = canvas.width = Math.max(1, r.width * dpr); H = canvas.height = Math.max(1, r.height * dpr);
+      ox = W * 0.5; oy = H * 0.99; build();
+    }
+    function frame() {
+      var th = themes[current], R = 95 * dpr, RR = R * R;
       ctx.clearRect(0, 0, W, H);
-      var ox = W * 0.5, oy = H * 0.99, maxLen = H * 0.95;
       for (var i = 0; i < rays.length; i++) {
         var ray = rays[i], col = th.colors[i % th.colors.length];
-        var ex = ox + Math.cos(ray.ang) * maxLen * ray.len, ey = oy + Math.sin(ray.ang) * maxLen * ray.len;
-        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ex, ey);
-        ctx.strokeStyle = col; ctx.globalAlpha = 0.16 + ray.jitter * 0.22; ctx.lineWidth = dpr * 0.7; ctx.stroke();
-        ctx.globalAlpha = 0.6 + ray.jitter * 0.4; ctx.fillStyle = th.dot;
-        ctx.beginPath(); ctx.arc(ex, ey, dpr * 1.6, 0, Math.PI * 2); ctx.fill();
-        for (var d = 0; d < ray.dots; d++) {
-          var f = (d + 1) / (ray.dots + 1), mx = ox + (ex - ox) * f, my = oy + (ey - oy) * f;
-          ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.arc(mx, my, dpr * 1.0, 0, Math.PI * 2); ctx.fill();
+        for (var s = 1; s < ray.pts.length; s++) {
+          var p = ray.pts[s];
+          if (mouse.active) {
+            var dx = p.x - mouse.x, dy = p.y - mouse.y, d2 = dx * dx + dy * dy;
+            if (d2 < RR && d2 > 0.01) {
+              var d = Math.sqrt(d2), force = (1 - d / R) * 30 * dpr * (s / SEG);
+              p.x += (dx / d) * force; p.y += (dy / d) * force;
+            }
+          }
+          p.x += (p.hx - p.x) * 0.12; p.y += (p.hy - p.y) * 0.12;
         }
+        ctx.beginPath(); ctx.moveTo(ray.pts[0].x, ray.pts[0].y);
+        for (var s2 = 1; s2 < ray.pts.length; s2++) ctx.lineTo(ray.pts[s2].x, ray.pts[s2].y);
+        ctx.strokeStyle = col; ctx.globalAlpha = 0.16 + ray.jitter * 0.22; ctx.lineWidth = dpr * 0.7; ctx.stroke();
+        var tip = ray.pts[ray.pts.length - 1];
+        ctx.globalAlpha = 0.7 + ray.jitter * 0.3; ctx.fillStyle = th.dot;
+        ctx.beginPath(); ctx.arc(tip.x, tip.y, dpr * 1.8, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.4;
+        for (var s3 = 2; s3 < ray.pts.length - 1; s3 += 2) { var mp = ray.pts[s3]; ctx.beginPath(); ctx.arc(mp.x, mp.y, dpr * 1.1, 0, Math.PI * 2); ctx.fill(); }
       }
       ctx.globalAlpha = 1;
+      if (running) rafId = requestAnimationFrame(frame);
     }
-    function resize() { var r = canvas.getBoundingClientRect(); canvas.width = r.width * dpr; canvas.height = r.height * dpr; draw(); }
+    function start() { if (!running) { running = true; rafId = requestAnimationFrame(frame); } }
+    function stop() { running = false; if (rafId) cancelAnimationFrame(rafId); }
     function setMode(m) {
       current = m; var th = themes[m];
       section.style.background = th.bg;
       section.classList.toggle('dark', th.dark);
       document.querySelectorAll('.ray-mode').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-mode') === m); });
-      draw();
     }
-    genRays();
+    function onMove(e) { var r = canvas.getBoundingClientRect(); mouse.x = (e.clientX - r.left) * dpr; mouse.y = (e.clientY - r.top) * dpr; mouse.active = true; }
+    section.addEventListener('mousemove', onMove);
+    section.addEventListener('mouseleave', function () { mouse.active = false; mouse.x = mouse.y = -9999; });
+    section.addEventListener('touchmove', function (e) { var t = e.touches[0]; if (t) { var r = canvas.getBoundingClientRect(); mouse.x = (t.clientX - r.left) * dpr; mouse.y = (t.clientY - r.top) * dpr; mouse.active = true; } }, { passive: true });
     window.addEventListener('resize', resize);
     document.querySelectorAll('.ray-mode').forEach(function (b) { b.addEventListener('click', function () { setMode(b.getAttribute('data-mode')); }); });
-    setMode('dusk');
-    setTimeout(resize, 60);
+    resize(); setMode('dusk');
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (en) { en.forEach(function (e) { e.isIntersecting ? start() : stop(); }); }, { threshold: 0.05 }).observe(section);
+    } else { start(); }
+    setTimeout(resize, 80);
   })();
 
   /* ---- AI chat widget (Groq/Llama via /api/chat) ---- */
@@ -1342,7 +1391,7 @@ body::after {
     var history = [], greeted = false;
     function addMsg(text, who) { var d = document.createElement('div'); d.className = 'ai-msg ' + who; d.textContent = text; msgs.appendChild(d); msgs.scrollTop = msgs.scrollHeight; }
     function typing() { var d = document.createElement('div'); d.className = 'ai-typing'; d.innerHTML = '<span></span><span></span><span></span>'; msgs.appendChild(d); msgs.scrollTop = msgs.scrollHeight; return d; }
-    function open() { panel.classList.add('open'); if (!greeted) { addMsg("Hi! I'm writeXpert's assistant. Ask me about what we build, our process, or how to start a project.", 'bot'); greeted = true; } input.focus(); }
+    function open() { panel.classList.add('open'); if (!greeted) { addMsg("Hi, I'm Xara \u2014 writeXpert's AI assistant. Ask me about what we build, our process, or how to start a project.", 'bot'); greeted = true; } input.focus(); }
     function close() { panel.classList.remove('open'); }
     fab.addEventListener('click', function () { panel.classList.contains('open') ? close() : open(); });
     document.getElementById('ai-close').addEventListener('click', close);

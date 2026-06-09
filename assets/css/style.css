@@ -874,3 +874,25 @@ body::after {
 .footer-legal { display: flex; flex-wrap: wrap; gap: 8px 22px; justify-content: center; padding: 26px 0 4px; border-top: 1px solid rgba(255,255,255,0.08); }
 .footer-legal a { font-size: 12px; color: rgba(255,255,255,0.5); font-family: var(--mono); transition: color .2s; }
 .footer-legal a:hover { color: rgba(255,255,255,0.9); }
+
+/* ============================================================
+   v12 — overlap fixes, mosaic icons, AI=Xara
+   ============================================================ */
+.ray-wrap { min-height: 680px; }
+.ray-head { top: 44px; }
+
+/* ecosystem: hug edges, never overlap center */
+.eco-center { max-width: 440px; }
+.eco-logo.f1 { top: 6%;  left: 5%;  right: auto; bottom: auto; }
+.eco-logo.f2 { top: 4%;  right: 5%; left: auto;  bottom: auto; }
+.eco-logo.f3 { top: 30%; left: 0;   right: auto; bottom: auto; }
+.eco-logo.f4 { top: 28%; right: 0;  left: auto;  bottom: auto; }
+.eco-logo.f5 { top: 54%; left: 5%;  right: auto; bottom: auto; }
+.eco-logo.f6 { top: 52%; right: 5%; left: auto;  bottom: auto; }
+.eco-logo.f7 { top: 78%; left: 2%;  right: auto; bottom: auto; }
+.eco-logo.f8 { top: 76%; right: 2%; left: auto;  bottom: auto; }
+
+/* careers mosaic: icon top, label bottom */
+.mtile { flex-direction: column; align-items: flex-start; justify-content: space-between; }
+.mtile-ico { width: 30px; height: 30px; position: relative; z-index: 1; opacity: 0.95; }
+.mtile-ico svg { width: 100%; height: 100%; }
