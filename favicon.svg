@@ -1,11 +1,14 @@
-<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="480" height="480" viewBox="0 0 480 480" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#C4B5FD"/><stop offset="0.55" stop-color="#8B5CF6"/><stop offset="1" stop-color="#6B2879"/>
+    <linearGradient id="xg" x1="0" y1="0" x2="480" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C4B5FD"/><stop offset="0.55" stop-color="#8B5CF6"/><stop offset="1" stop-color="#5B21B6"/>
     </linearGradient>
   </defs>
-  <rect x="1" y="1" width="38" height="38" rx="10" stroke="url(#g)" stroke-width="1.4" fill="#0C0814"/>
-  <path d="M9 12 L5.5 20 L9 28" stroke="#A78BFA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <path d="M31 12 L34.5 20 L31 28" stroke="#A78BFA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <path d="M15.5 13 L24.5 27 M24.5 13 L15.5 27" stroke="url(#g)" stroke-width="2.6" stroke-linecap="round"/>
+  <g transform="translate(0,0)">
+    <rect x="9" y="9" width="462" height="462" rx="118" fill="#0C0814"/>
+    <rect x="9" y="9" width="462" height="462" rx="118" stroke="url(#xg)" stroke-width="14" fill="none"/>
+    <path d="M126 148 L86 240 L126 332" stroke="#A78BFA" stroke-width="21" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M354 148 L394 240 L354 332" stroke="#A78BFA" stroke-width="21" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M188 156 L292 324 M292 156 L188 324" stroke="url(#xg)" stroke-width="32" stroke-linecap="round"/>
+  </g>
 </svg>
