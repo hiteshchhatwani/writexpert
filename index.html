@@ -935,6 +935,27 @@ body::after {
 .mtile-ico { width: 30px; height: 30px; position: relative; z-index: 1; opacity: 0.95; }
 .mtile-ico svg { width: 100%; height: 100%; }
 
+/* v13 — ray toggle + collapsible menu */
+.ray-toggle {
+  position: absolute; top: 40px; right: 32px; z-index: 5;
+  width: 44px; height: 44px; border-radius: 12px; cursor: pointer;
+  background: rgba(255,255,255,0.75); backdrop-filter: blur(12px);
+  border: 1px solid var(--line); color: var(--violet-deep);
+  display: grid; place-items: center; box-shadow: 0 10px 26px -12px rgba(0,0,0,0.18);
+  transition: transform .3s var(--ease), background .3s;
+}
+.ray-toggle svg { width: 20px; height: 20px; }
+.ray-toggle:hover { transform: rotate(35deg) scale(1.05); }
+.ray-section.dark .ray-toggle { background: rgba(20,18,30,0.6); border-color: rgba(255,255,255,0.14); color: #fff; }
+.ray-modes { top: 94px; bottom: auto; transform: none; display: none; }
+.ray-modes.open { display: flex; animation: aiUp .25s var(--ease); }
+.ray-section.dark .ray-modes { background: rgba(20,18,30,0.7); }
+@media (max-width: 760px) {
+  .ray-toggle { top: auto; bottom: 20px; right: 50%; transform: translateX(50%); }
+  .ray-modes { position: static; transform: none; margin: 60px auto 0; }
+  .ray-modes.open { display: flex; }
+}
+
 </style>
 </head>
 <body>
@@ -1264,6 +1285,7 @@ body::after {
         <h2>Software that adapts to your needs.</h2>
         <p>One system, many modes &mdash; tap to explore.</p>
       </div>
+      <button class="ray-toggle" id="ray-toggle" aria-label="Change time of day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M3.5 12H1M23 12h-2.5M5 5l1.7 1.7M17.3 17.3L19 19M5 19l1.7-1.7M17.3 6.7L19 5" stroke-linecap="round"/></svg></button>
       <div class="ray-modes">
         <button class="ray-mode" data-mode="pre-dawn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" stroke-linejoin="round"/></svg>Pre-dawn</button>
         <button class="ray-mode" data-mode="sunrise"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6L19 19M5 19l1.4-1.4M17.6 6.4L19 5" stroke-linecap="round"/></svg>Sunrise</button>
@@ -1631,75 +1653,89 @@ body::after {
     });
   }
 
-  /* ---- interactive ray-burst (cursor-repel) ---- */
+  /* ---- ray-burst: emanating sun-rays (Stripe-grade) ---- */
   (function () {
     var canvas = document.getElementById('ray-canvas');
     if (!canvas) return;
     var ctx = canvas.getContext('2d');
     var section = document.querySelector('.ray-section');
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var W = 0, H = 0, ox = 0, oy = 0;
-    var rays = [], SEG = 6;
+    var W = 0, H = 0, ox = 0, oy = 0, maxLen = 0;
+    var rays = [];
     var mouse = { x: -9999, y: -9999, active: false };
     var running = false, rafId = null;
-    var themes = {
-      'pre-dawn': { bg: 'linear-gradient(180deg,#1e1b4b,#312e81)', dark: true, colors: ['#818cf8', '#a5b4fc', '#6366f1'], dot: '#c7d2fe' },
-      'sunrise':  { bg: 'linear-gradient(180deg,#fef3c7,#fbcfe8)', dark: false, colors: ['#fb923c', '#f472b6', '#fbbf24'], dot: '#f59e0b' },
-      'daytime':  { bg: 'linear-gradient(180deg,#dbeafe,#eff6ff)', dark: false, colors: ['#3b82f6', '#60a5fa', '#2563eb'], dot: '#1d4ed8' },
-      'dusk':     { bg: 'linear-gradient(180deg,#ede9fe,#fae8ff)', dark: false, colors: ['#7C3AED', '#a78bfa', '#c084fc'], dot: '#6d28d9' },
-      'sunset':   { bg: 'linear-gradient(180deg,#fed7aa,#fecaca)', dark: false, colors: ['#f97316', '#ef4444', '#fb7185'], dot: '#ea580c' },
-      'night':    { bg: 'linear-gradient(180deg,#0f172a,#1e1b4b)', dark: true, colors: ['#6366f1', '#475569', '#818cf8'], dot: '#a5b4fc' }
+    var P = {
+      'pre-dawn': { bg: 'linear-gradient(180deg,#1e1b4b,#312e81)', dark: true, base: '#6366f1', tip: '#a5b4fc', dot: '#c7d2fe', glow: 'rgba(129,140,248,0.30)' },
+      'sunrise':  { bg: 'linear-gradient(180deg,#fef3c7,#fbcfe8)', dark: false, base: '#f97316', tip: '#f472b6', dot: '#f59e0b', glow: 'rgba(251,191,36,0.50)' },
+      'daytime':  { bg: 'linear-gradient(180deg,#dbeafe,#eff6ff)', dark: false, base: '#2563eb', tip: '#60a5fa', dot: '#1d4ed8', glow: 'rgba(251,191,36,0.45)' },
+      'dusk':     { bg: 'linear-gradient(180deg,#ede9fe,#fae8ff)', dark: false, base: '#6d28d9', tip: '#c084fc', dot: '#7C3AED', glow: 'rgba(244,114,182,0.40)' },
+      'sunset':   { bg: 'linear-gradient(180deg,#fed7aa,#fecaca)', dark: false, base: '#7c3aed', tip: '#fb7185', dot: '#ef4444', glow: 'rgba(249,115,22,0.48)' },
+      'night':    { bg: 'linear-gradient(180deg,#0f172a,#1e1b4b)', dark: true, base: '#475569', tip: '#818cf8', dot: '#a5b4fc', glow: 'rgba(99,102,241,0.30)' }
     };
     var current = 'dusk';
     function build() {
       rays = [];
-      var N = 130, startA = Math.PI * 200 / 180, endA = Math.PI * 340 / 180, maxLen = H * 0.62;
+      var N = 184, startA = Math.PI * 183 / 180, endA = Math.PI * 357 / 180;
       for (var i = 0; i < N; i++) {
-        var t = i / (N - 1), ang = startA + t * (endA - startA), len = maxLen * (0.45 + Math.random() * 0.55), pts = [];
-        for (var s = 0; s <= SEG; s++) {
-          var f = s / SEG, hx = ox + Math.cos(ang) * len * f, hy = oy + Math.sin(ang) * len * f;
-          pts.push({ hx: hx, hy: hy, x: hx, y: hy });
-        }
-        rays.push({ pts: pts, jitter: Math.random() });
+        var t = i / (N - 1);
+        var ang = startA + t * (endA - startA) + (Math.random() - 0.5) * 0.012;
+        var len = maxLen * (0.5 + Math.random() * 0.5);
+        var dots = [];
+        var nd = 1 + Math.floor(Math.random() * 2);
+        for (var d = 0; d < nd; d++) dots.push({ p: Math.random(), spd: 0.0016 + Math.random() * 0.0026, ox: 0, oy: 0 });
+        rays.push({ a: ang, len: len, ca: Math.cos(ang), sa: Math.sin(ang), jitter: Math.random(), dots: dots });
       }
     }
     function resize() {
       var r = canvas.getBoundingClientRect();
       W = canvas.width = Math.max(1, r.width * dpr); H = canvas.height = Math.max(1, r.height * dpr);
-      ox = W * 0.5; oy = H * 0.99; build();
+      ox = W * 0.5; oy = H * 0.985; maxLen = H * 0.66; build();
     }
     function frame() {
-      var th = themes[current], R = 95 * dpr, RR = R * R;
+      var th = P[current];
       ctx.clearRect(0, 0, W, H);
+      // sun glow
+      var gR = maxLen * 0.9;
+      var g = ctx.createRadialGradient(ox, oy, 0, ox, oy, gR);
+      g.addColorStop(0, th.glow); g.addColorStop(0.5, th.glow.replace(/0?\.\d+\)$/, '0.12)')); g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(ox, oy, gR, Math.PI, 0); ctx.fill();
+      var R = 80 * dpr, RR = R * R;
       for (var i = 0; i < rays.length; i++) {
-        var ray = rays[i], col = th.colors[i % th.colors.length];
-        for (var s = 1; s < ray.pts.length; s++) {
-          var p = ray.pts[s];
+        var ray = rays[i];
+        var tx = ox + ray.ca * ray.len, ty = oy + ray.sa * ray.len;
+        // gradient line
+        var lg = ctx.createLinearGradient(ox, oy, tx, ty);
+        lg.addColorStop(0, th.base); lg.addColorStop(1, th.tip);
+        ctx.strokeStyle = lg; ctx.globalAlpha = 0.10 + ray.jitter * 0.16; ctx.lineWidth = dpr * 0.6;
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(tx, ty); ctx.stroke();
+        // traveling dots
+        for (var d = 0; d < ray.dots.length; d++) {
+          var dot = ray.dots[d];
+          dot.p += dot.spd; if (dot.p > 1) dot.p -= 1;
+          var px = ox + ray.ca * ray.len * dot.p, py = oy + ray.sa * ray.len * dot.p;
           if (mouse.active) {
-            var dx = p.x - mouse.x, dy = p.y - mouse.y, d2 = dx * dx + dy * dy;
-            if (d2 < RR && d2 > 0.01) {
-              var d = Math.sqrt(d2), force = (1 - d / R) * 30 * dpr * (s / SEG);
-              p.x += (dx / d) * force; p.y += (dy / d) * force;
-            }
+            var dx = px - mouse.x, dy = py - mouse.y, d2 = dx * dx + dy * dy;
+            if (d2 < RR && d2 > 0.01) { var dd = Math.sqrt(d2), f = (1 - dd / R) * 24 * dpr; px += (dx / dd) * f; py += (dy / dd) * f; }
           }
-          p.x += (p.hx - p.x) * 0.12; p.y += (p.hy - p.y) * 0.12;
+          var fade = Math.sin(dot.p * Math.PI);
+          ctx.globalAlpha = fade * (0.5 + ray.jitter * 0.5);
+          ctx.fillStyle = th.dot;
+          ctx.beginPath(); ctx.arc(px, py, dpr * (1.0 + fade * 0.9), 0, Math.PI * 2); ctx.fill();
         }
-        ctx.beginPath(); ctx.moveTo(ray.pts[0].x, ray.pts[0].y);
-        for (var s2 = 1; s2 < ray.pts.length; s2++) ctx.lineTo(ray.pts[s2].x, ray.pts[s2].y);
-        ctx.strokeStyle = col; ctx.globalAlpha = 0.16 + ray.jitter * 0.22; ctx.lineWidth = dpr * 0.7; ctx.stroke();
-        var tip = ray.pts[ray.pts.length - 1];
-        ctx.globalAlpha = 0.7 + ray.jitter * 0.3; ctx.fillStyle = th.dot;
-        ctx.beginPath(); ctx.arc(tip.x, tip.y, dpr * 1.8, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 0.4;
-        for (var s3 = 2; s3 < ray.pts.length - 1; s3 += 2) { var mp = ray.pts[s3]; ctx.beginPath(); ctx.arc(mp.x, mp.y, dpr * 1.1, 0, Math.PI * 2); ctx.fill(); }
       }
+      // bright sun core
+      ctx.globalAlpha = 1;
+      var core = ctx.createRadialGradient(ox, oy, 0, ox, oy, maxLen * 0.18);
+      core.addColorStop(0, th.dark ? 'rgba(199,210,254,0.5)' : 'rgba(255,255,255,0.85)');
+      core.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = core; ctx.beginPath(); ctx.arc(ox, oy, maxLen * 0.18, Math.PI, 0); ctx.fill();
       ctx.globalAlpha = 1;
       if (running) rafId = requestAnimationFrame(frame);
     }
     function start() { if (!running) { running = true; rafId = requestAnimationFrame(frame); } }
     function stop() { running = false; if (rafId) cancelAnimationFrame(rafId); }
     function setMode(m) {
-      current = m; var th = themes[m];
+      current = m; var th = P[m];
       section.style.background = th.bg;
       section.classList.toggle('dark', th.dark);
       document.querySelectorAll('.ray-mode').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-mode') === m); });
@@ -1708,11 +1744,18 @@ body::after {
     section.addEventListener('mousemove', onMove);
     section.addEventListener('mouseleave', function () { mouse.active = false; mouse.x = mouse.y = -9999; });
     section.addEventListener('touchmove', function (e) { var t = e.touches[0]; if (t) { var r = canvas.getBoundingClientRect(); mouse.x = (t.clientX - r.left) * dpr; mouse.y = (t.clientY - r.top) * dpr; mouse.active = true; } }, { passive: true });
+    // mode toggle (sun icon opens menu)
+    var toggle = document.getElementById('ray-toggle');
+    var menu = document.querySelector('.ray-modes');
+    if (toggle && menu) {
+      toggle.addEventListener('click', function (e) { e.stopPropagation(); menu.classList.toggle('open'); });
+      document.addEventListener('click', function (e) { if (!menu.contains(e.target) && e.target !== toggle) menu.classList.remove('open'); });
+    }
     window.addEventListener('resize', resize);
-    document.querySelectorAll('.ray-mode').forEach(function (b) { b.addEventListener('click', function () { setMode(b.getAttribute('data-mode')); }); });
+    document.querySelectorAll('.ray-mode').forEach(function (b) { b.addEventListener('click', function () { setMode(b.getAttribute('data-mode')); if (menu) menu.classList.remove('open'); }); });
     resize(); setMode('dusk');
     if ('IntersectionObserver' in window) {
-      new IntersectionObserver(function (en) { en.forEach(function (e) { e.isIntersecting ? start() : stop(); }); }, { threshold: 0.05 }).observe(section);
+      new IntersectionObserver(function (en) { en.forEach(function (e) { e.isIntersecting ? start() : stop(); }); }, { threshold: 0.04 }).observe(section);
     } else { start(); }
     setTimeout(resize, 80);
   })();
